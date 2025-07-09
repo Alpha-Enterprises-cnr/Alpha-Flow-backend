@@ -13,50 +13,48 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Excel form API handler
+// API Routes
 app.use('/api', formHandler);
 
-// Serve static Excel files
+// Ensure directories exist
+const ensureDir = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
 const filesPath = path.join(__dirname, 'brsFiles');
-if (!fs.existsSync(filesPath)) {
-  fs.mkdirSync(filesPath, { recursive: true });
-}
-app.use('/brsFiles', express.static(filesPath));
-
-// File upload setup with multer
 const uploadsPath = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
+ensureDir(filesPath);
+ensureDir(uploadsPath);
 
+// Serve static files
+app.use('/brsFiles', express.static(filesPath));
+app.use('/uploads', express.static(uploadsPath));
+
+// File upload setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsPath),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-
 const upload = multer({ storage });
 
-// File upload route
+// Upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
   const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-  res.json({
-    filename: file.filename,
-    url: fileUrl,
-  });
+  res.json({ filename: file.filename, url: fileUrl });
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static(uploadsPath));
-
-// Health check
-app.get('/', (req, res) => {
-  res.send('✅ Backend is running');
+// Serve React frontend
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-// Start the server
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is listening on port ${PORT}`);
 });

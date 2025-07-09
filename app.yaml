@@ -1,7 +1,16 @@
 runtime: nodejs20
-env: standard
-instance_class: F1
+entrypoint: node server.js
+service: backend
 
 handlers:
+  - url: /uploads
+    static_dir: uploads
+
+  - url: /brsFiles
+    static_dir: brsFiles
+
+  - url: /static
+    static_dir: build/static
+
   - url: /.*
     script: auto
