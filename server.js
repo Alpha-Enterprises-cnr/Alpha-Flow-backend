@@ -16,6 +16,11 @@ app.use(express.json());
 // API Routes
 app.use('/api', formHandler);
 
+// Health check route
+app.get('/', (req, res) => {
+  res.send('✅ Backend is running and ready to receive requests!');
+});
+
 // Ensure directories exist
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -46,12 +51,6 @@ app.post('/upload', upload.single('file'), (req, res) => {
 
   const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
   res.json({ filename: file.filename, url: fileUrl });
-});
-
-// Serve React frontend
-app.use(express.static(path.join(__dirname, 'build')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 // Start server
