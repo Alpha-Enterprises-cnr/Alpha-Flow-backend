@@ -3,7 +3,6 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-
 const formHandler = require('./routes/formHandler');
 
 const app = express();
@@ -11,63 +10,75 @@ const PORT = process.env.PORT || 8080;
 
 // ✅ Allow CORS from frontend deployed on Vercel
 app.use(cors({
-  origin: ['https://alpha-flow-frontend-git-main-alphacnr.vercel.app',
-          'https://alpha-flow-frontend.vercel.app'],
-  
-  methods: ['GET', 'POST','OPTIONS'],
-  allowedHeaders: ['Content-Type'],
+  origin: [
+    'https://alpha-flow-frontend.vercel.app',
+    'https://alpha-flow-frontend-git-main-alphacnr.vercel.app'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
 }));
 
-// ✅ Middleware to log all incoming requests (for debugging)
+// ✅ Log incoming requests for debugging
 app.use((req, res, next) => {
-  console.log(`🌐 Request from: ${req.method} ${req.url}`);
+  console.log(`🌐 [${new Date().toISOString()}] ${req.method} ${req.url}`);
   console.log(`📦 Origin: ${req.headers.origin}`);
   next();
 });
 
+// ✅ Parse incoming JSON bodies
 app.use(express.json());
 
-// ✅ API Routes
-app.use('/api', formHandler);
-
-// ✅ Health check route
-app.get('/', (req, res) => {
-  res.send('✅ Backend is running and ready to receive requests!');
+// ✅ Add middleware to catch malformed JSON
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('🛑 Bad JSON:', err.message);
+    return res.status(400).json({ error: 'Invalid JSON format' });
+  }
+  next();
 });
 
-// ✅ Ensure directories exist
+// ✅ Routes
+app.use('/api', formHandler);
+
+app.get('/', (req, res) => {
+  res.send('✅ Backend is up and ready!');
+});
+
+// ✅ Ensure directory existence
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 };
 
-const filesPath = path.join(__dirname, 'brsFiles');
 const uploadsPath = path.join(__dirname, 'uploads');
-ensureDir(filesPath);
+const filesPath = path.join(__dirname, 'brsFiles');
 ensureDir(uploadsPath);
+ensureDir(filesPath);
 
-// ✅ Serve static files
-app.use('/brsFiles', express.static(filesPath));
+// ✅ Static file serving
 app.use('/uploads', express.static(uploadsPath));
+app.use('/brsFiles', express.static(filesPath));
 
-// ✅ File upload setup
+// ✅ File Upload Configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsPath),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage });
 
-// ✅ Upload endpoint
+// ✅ File Upload Endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   const file = req.file;
-  if (!file) return res.status(400).json({ error: 'No file uploaded' });
+  if (!file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
 
   const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
   res.json({ filename: file.filename, url: fileUrl });
 });
 
-// ✅ Start server
+// ✅ Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server is listening on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
