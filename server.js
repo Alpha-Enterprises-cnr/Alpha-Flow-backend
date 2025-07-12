@@ -9,19 +9,31 @@ const formHandler = require('./routes/formHandler');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors());
+// ✅ Allow CORS from frontend deployed on Vercel
+app.use(cors({
+  origin: ['https://alpha-flow-frontend-git-main-alphacnr.vercel.app'],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
+
+// ✅ Middleware to log all incoming requests (for debugging)
+app.use((req, res, next) => {
+  console.log(`🌐 Request from: ${req.method} ${req.url}`);
+  console.log(`📦 Origin: ${req.headers.origin}`);
+  next();
+});
+
 app.use(express.json());
 
-// API Routes
+// ✅ API Routes
 app.use('/api', formHandler);
 
-// Health check route
+// ✅ Health check route
 app.get('/', (req, res) => {
   res.send('✅ Backend is running and ready to receive requests!');
 });
 
-// Ensure directories exist
+// ✅ Ensure directories exist
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -33,18 +45,18 @@ const uploadsPath = path.join(__dirname, 'uploads');
 ensureDir(filesPath);
 ensureDir(uploadsPath);
 
-// Serve static files
+// ✅ Serve static files
 app.use('/brsFiles', express.static(filesPath));
 app.use('/uploads', express.static(uploadsPath));
 
-// File upload setup
+// ✅ File upload setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsPath),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
-// Upload endpoint
+// ✅ Upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'No file uploaded' });
@@ -53,7 +65,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   res.json({ filename: file.filename, url: fileUrl });
 });
 
-// Start server
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is listening on port ${PORT}`);
 });
