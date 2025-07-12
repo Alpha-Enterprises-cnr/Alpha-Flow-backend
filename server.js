@@ -11,8 +11,10 @@ const PORT = process.env.PORT || 8080;
 
 // ✅ Allow CORS from frontend deployed on Vercel
 app.use(cors({
-  origin: ['https://alpha-flow-frontend-git-main-alphacnr.vercel.app'],
-  methods: ['GET', 'POST'],
+  origin: ['https://alpha-flow-frontend-git-main-alphacnr.vercel.app'.
+          'https://alpha-flow-frontend.vercel.app'],
+  
+  methods: ['GET', 'POST','OPTIONS'],
   allowedHeaders: ['Content-Type'],
 }));
 
